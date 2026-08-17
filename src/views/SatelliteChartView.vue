@@ -151,20 +151,20 @@ const clampTimelineBounds = () => {
   const visibleTimelineWidth = boardWidth.value - 320
   const totalChartWidth = 1440 * zoom.value
 
-  if (zoom.value <= minZoom.value) {
-    zoom.value = minZoom.value
-    offset.value = 0
-    return
+  let targetZoom = zoom.value
+  let targetOffset = offset.value
+
+  if (targetZoom < minZoom.value) {
+    targetZoom = minZoom.value
+    targetOffset = 0
+  } else {
+    if (targetOffset > 0) targetOffset = 0
+    const maxLeftOffset = visibleTimelineWidth - totalChartWidth
+    if (targetOffset < maxLeftOffset) targetOffset = maxLeftOffset
   }
 
-  if (offset.value > 0) {
-    offset.value = 0
-  }
-
-  const maxLeftOffset = visibleTimelineWidth - totalChartWidth
-  if (offset.value < maxLeftOffset) {
-    offset.value = maxLeftOffset
-  }
+  if (zoom.value !== targetZoom) zoom.value = targetZoom
+  if (offset.value !== targetOffset) offset.value = targetOffset
 }
 
 watch(minZoom, (newMinZoom) => {
@@ -280,29 +280,24 @@ const handleWheel = (e: WheelEvent) => {
   const mouseXInTimeline = e.clientX - rect.left - 240
 
   const oldZoom = zoom.value
-  const zoomFactor = 1.12
-  let newZoom = oldZoom
-
-  if (e.deltaY < 0) {
-    newZoom = Math.min(oldZoom * zoomFactor, 100)
-  } else {
-    newZoom = Math.max(oldZoom / zoomFactor, minZoom.value)
-  }
+  const zoomFactor = 1.15
+  const newZoom =
+    e.deltaY < 0
+      ? Math.min(oldZoom * zoomFactor, 100)
+      : Math.max(oldZoom / zoomFactor, minZoom.value)
 
   if (newZoom === oldZoom) return
 
   const mouseTimeMinutes = (mouseXInTimeline - offset.value) / oldZoom
-  zoom.value = newZoom
-
-  let newOffset = mouseXInTimeline - mouseTimeMinutes * newZoom
-
   const visibleTimelineWidth = boardWidth.value - 320
   const totalChartWidth = 1440 * newZoom
   const maxLeftOffset = visibleTimelineWidth - totalChartWidth
 
+  let newOffset = mouseXInTimeline - mouseTimeMinutes * newZoom
   if (newOffset > 0) newOffset = 0
   if (newOffset < maxLeftOffset) newOffset = maxLeftOffset
 
+  zoom.value = newZoom
   offset.value = newOffset
 }
 

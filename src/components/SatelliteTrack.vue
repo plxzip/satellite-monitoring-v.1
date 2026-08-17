@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { WorkInterval } from '../types/api'
+import { parseTimeToMinutes } from '../utils/time'
 
 interface Props {
   spacecraftId: number
@@ -12,28 +13,10 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const timeToMinutes = (timeStr: string): number => {
-  if (!timeStr) return 0
-
-  const cleanTime = timeStr.trim().slice(-8)
-
-  const parts = cleanTime.split(':')
-  const hours = parseInt(parts[0] || '0', 10)
-  const minutes = parseInt(parts[1] || '0', 10)
-  const seconds = parseInt(parts[2] || '0', 10)
-
-  if (isNaN(hours) || isNaN(minutes)) {
-    console.error(`Ошибка парсинга времени: "${timeStr}"`)
-    return 0
-  }
-
-  return hours * 60 + minutes + seconds / 60
-}
-
 const preparedIntervals = computed(() => {
   return props.intervals.map((interval) => {
-    const startMin = timeToMinutes(interval.time_beg)
-    const endMin = timeToMinutes(interval.time_end)
+    const startMin = parseTimeToMinutes(interval.time_beg)
+    const endMin = parseTimeToMinutes(interval.time_end)
     const duration = endMin - startMin
 
     return {
