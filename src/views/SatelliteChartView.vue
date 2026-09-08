@@ -242,24 +242,40 @@ async function getIntervals(date: string) {
 }
 
 const initSettings = () => {
+  let savedSettings: UserSettings = {}
+  
   const saved = localStorage.getItem('satellite_chart_user_settings')
   if (saved) {
-    settings.value = JSON.parse(saved)
-  } else {
-    const defaultSettings: UserSettings = {}
-    workTypes.value.forEach((work) => {
-      const colorObj = defaultColors.value.find((c) => c.type_id === work.id)
-      const satelliteVisibility: Record<number, boolean> = {}
-      spacecrafts.value.forEach((sat) => {
-        satelliteVisibility[sat.id] = true
-      })
-      defaultSettings[work.id] = {
-        visible: { all: true, satellites: satelliteVisibility },
-        color: colorObj ? colorObj.color : '#cccccc',
-      }
-    })
-    settings.value = defaultSettings
+    try {
+      savedSettings = JSON.parse(saved)
+    } catch (e) {
+      console.error('Ошибка чтения настроек из localStorage', e)
+    }
   }
+
+  const mergedSettings: UserSettings = {}
+
+  workTypes.value.forEach((work) => {
+    const savedWorkSetting = savedSettings[work.id]
+    const colorObj = defaultColors.value.find((c) => c.type_id === work.id)
+    const fallbackColor = colorObj ? colorObj.color : '#cccccc'
+
+    const satelliteVisibility: Record<number, boolean> = {}
+    spacecrafts.value.forEach((sat) => {
+      const savedSatVis = savedWorkSetting?.visible?.satellites?.[sat.id]
+      satelliteVisibility[sat.id] = savedSatVis !== undefined ? savedSatVis : true
+    })
+
+    mergedSettings[work.id] = {
+      visible: {
+        all: savedWorkSetting?.visible?.all !== undefined ? savedWorkSetting.visible.all : true,
+        satellites: satelliteVisibility,
+      },
+      color: savedWorkSetting?.color || fallbackColor,
+    }
+  })
+
+  settings.value = mergedSettings
 }
 
 watch(
